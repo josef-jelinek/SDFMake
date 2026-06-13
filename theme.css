@@ -1,0 +1,192 @@
+html[data-theme="light"] {
+    --page-background: #ffffff;
+    --text-color: #111111;
+    --muted-color: #555555;
+    --panel-color: #f5f5f5;
+    --canvas-color: #000000;
+    --border-color: #cccccc;
+    --button-background: #f0f0f0;
+    --button-hover-background: #e6e6e6;
+    --button-pressed-hover-border-color: #ffd24a;
+    --button-active-background: #f2a000;
+    --button-pressed-background: #ffd24a;
+    --button-border-color: #888888;
+    --button-active-border-color: #111111;
+    --button-pressed-border-color: #111111;
+    --button-highlight-text: #111111;
+    --button-disabled-background: #eeeeee;
+    --button-disabled-color: #888888;
+    --emphasis-color: #b27700;
+    --help-code-color: #9f6500;
+    --help-strong-color: #b27700;
+    --overlay-background: rgba(255, 255, 255, 0.65);
+    color-scheme: light;
+}
+
+html[data-theme="dark"] {
+    --page-background: #1a1a1a;
+    --text-color: #eeeeee;
+    --muted-color: #b8b8b8;
+    --panel-color: #2a2a2a;
+    --canvas-color: #000000;
+    --border-color: #5a5a5a;
+    --button-background: #333333;
+    --button-hover-background: #3e3e3e;
+    --button-pressed-hover-border-color: #e6b83f;
+    --button-active-background: #d08a00;
+    --button-pressed-background: #e6b83f;
+    --button-border-color: #777777;
+    --button-active-border-color: #111111;
+    --button-pressed-border-color: #111111;
+    --button-highlight-text: #111111;
+    --button-disabled-background: #2b2b2b;
+    --button-disabled-color: #777777;
+    --emphasis-color: #ffd46a;
+    --help-code-color: #ffb62e;
+    --help-strong-color: #ffd46a;
+    --overlay-background: rgba(32, 32, 32, 0.70);
+    color-scheme: dark;
+}
+
+html {
+    font-family: sans-serif;
+    color: var(--text-color);
+    background: var(--page-background);
+}
+
+a {
+    color: var(--emphasis-color);
+}
+
+dialog {
+    color: var(--text-color);
+    background: var(--page-background);
+}
+
+button,
+label:has(> input[type="checkbox"]),
+label:has(> input[type="radio"]) {
+    display: inline-block;
+    padding: 0 0.5rem;
+    border: 1px solid var(--button-border-color);
+    border-radius: 0.35rem;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    line-height: 1.8rem;
+    font-weight: bold;
+    background: var(--button-background);
+    cursor: pointer;
+}
+
+label:has(> input[type="checkbox"]) > input[type="checkbox"],
+label:has(> input[type="radio"]) > input[type="radio"] {
+    position: absolute;
+    width: 0;
+    height: 0;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+button:hover:not(:disabled),
+label:has(> input[type="checkbox"]:enabled):hover,
+label:has(> input[type="radio"]:enabled):hover {
+    background: var(--button-hover-background);
+}
+
+button:active:not(:disabled) {
+    border-color: var(--button-active-border-color);
+    color: var(--button-highlight-text);
+    background: var(--button-active-background);
+}
+
+label:has(> input[type="checkbox"]:checked),
+label:has(> input[type="radio"]:checked) {
+    border-color: var(--button-pressed-border-color);
+    color: var(--button-highlight-text);
+    background: var(--button-pressed-background);
+}
+
+label:has(> input[type="checkbox"]:checked:enabled):hover,
+label:has(> input[type="radio"]:checked:enabled):hover {
+    border-color: var(--button-pressed-hover-border-color);
+    color: var(--button-highlight-text);
+    background: var(--button-pressed-background);
+}
+
+label:has(> input[type="checkbox"]:enabled):active,
+label:has(> input[type="radio"]:enabled):active {
+    border-color: var(--button-active-border-color);
+    color: var(--button-highlight-text);
+    background: var(--button-active-background);
+}
+
+label:has(> input[type="checkbox"]:checked:enabled):active,
+label:has(> input[type="radio"]:checked:enabled):active {
+    border-color: var(--button-active-border-color);
+    color: var(--button-highlight-text);
+    background: var(--button-active-background);
+}
+
+button:disabled,
+label:has(> input[type="checkbox"]:disabled),
+label:has(> input[type="radio"]:disabled) {
+    border-color: var(--border-color);
+    color: var(--button-disabled-color);
+    background: var(--button-disabled-background);
+    cursor: default;
+}
+
+button:focus-visible,
+label:has(> input[type="checkbox"]:focus-visible),
+label:has(> input[type="radio"]:focus-visible) {
+    outline: 1px solid var(--emphasis-color);
+    outline-offset: 1px;
+}
+
+.header-controls,
+.preview-options,
+.mesh-method-options,
+.mesh-reducer-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.header-controls label,
+.preview-options label,
+.mesh-method-options label,
+.mesh-reducer-options label {
+    margin: 0;
+}
+
+.help-dialog-content code {
+    color: var(--help-code-color);
+}
+
+.help-dialog-content strong {
+    color: var(--help-strong-color);
+}
+
+.preview-options {
+    background: var(--overlay-background);
+}
+
+.help-dialog-actions {
+    border-color: var(--border-color);
+    background: var(--panel-color);
+}
+
+canvas {
+    background: var(--canvas-color);
+}
+
+.preview-overlay-content {
+    color: var(--text-color);
+    background: var(--overlay-background);
+}
+
+#status-message {
+    color: var(--muted-color);
+    background: var(--overlay-background);
+}

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SDFMake</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="theme.css">
+</head>
+
+<body>
+<main class="app-layout">
+    <section class="script-panel" aria-label="Script">
+        <header>
+            <h1>SDFMake</h1>
+            <div class="header-controls">
+                <label><input id="dark-mode-toggle" type="checkbox">Dark mode</label>
+                <button type="button" id="help-button">Help</button>
+            </div>
+        </header>
+        <textarea id="script-source" spellcheck="false" aria-label="Model script"></textarea>
+        <div class="control-row">
+            <button type="button" id="triangulate-button">Triangulate</button>
+            <button type="button" id="export-button" disabled>Export txt STL</button>
+            <button type="button" id="binary-export-button" disabled>Export bin STL</button>
+        </div>
+        <fieldset>
+            <span>Triangulator</span>
+            <div id="mesh-method" class="mesh-method-options" role="radiogroup" aria-label="Triangulator">
+                <label><input type="radio" name="mesh-method" value="voxel">Voxel</label>
+                <label><input type="radio" name="mesh-method" value="voxel-blend">Voxel blend</label>
+                <label><input type="radio" name="mesh-method" value="marching-tetrahedra">Marching tetrahedra</label>
+                <label><input type="radio" name="mesh-method" value="contour-fit" checked>Contour fit</label>
+            </div>
+            <span>Reducer</span>
+            <div id="mesh-reducer" class="mesh-reducer-options" role="radiogroup" aria-label="Reducer">
+                <label><input type="radio" name="mesh-reducer" value="none">None</label>
+                <label><input type="radio" name="mesh-reducer" value="edge-collapse" checked>Edge collapse</label>
+                <label><input type="radio" name="mesh-reducer" value="strong-edge-collapse">Strong edge collapse</label>
+            </div>
+            <label for="mesh-cell-size">Cell size (mm)</label>
+            <input id="mesh-cell-size" type="number" min="0.1" step="0.1" value="1">
+            <label for="mesh-subdivisions">Subdivisions</label>
+            <input id="mesh-subdivisions" type="number" min="1" max="3" step="1" value="2">
+            <label for="mesh-bound">Volume size (mm)</label>
+            <input id="mesh-bound" type="number" min="10" max="500" step="5" value="120">
+        </fieldset>
+    </section>
+    <section class="preview-panel" aria-label="Preview">
+        <div class="preview-canvas-area">
+            <div id="preview-mode" class="preview-options" role="radiogroup" aria-label="Preview">
+                <label><input type="radio" name="preview-mode" value="sdf">Solid</label>
+                <label><input type="radio" name="preview-mode" value="sdf-photo" checked>Solid photo</label>
+                <label><input type="radio" name="preview-mode" value="shaded">Shaded mesh</label>
+                <label><input type="radio" name="preview-mode" value="triangles">Triangle mesh</label>
+                <label><input type="radio" name="preview-mode" value="wireframe">Wireframe mesh</label>
+                <label><input id="animate-toggle" type="checkbox" checked>Animate</label>
+            </div>
+            <canvas id="preview-canvas" width="900" height="700"></canvas>
+            <div id="preview-overlay" class="preview-overlay" hidden>
+                <div id="preview-overlay-content" class="preview-overlay-content">
+                    <div id="preview-overlay-message"></div>
+                    <progress id="preview-overlay-progress" max="100" value="0" hidden></progress>
+                    <div id="preview-overlay-step" class="preview-overlay-step" hidden></div>
+                </div>
+            </div>
+            <p id="status-message" role="status">Loading shaders.</p>
+        </div>
+    </section>
+</main>
+<dialog id="help-dialog" aria-label="SDFMake help">
+    <div class="help-dialog-content">
+        <section>
+            <h3>Script Syntax</h3>
+            <p>Units are millimeters. Scripts are <code>let</code> assignments, <code>let</code> macro declarations, and one final render expression. The final expression is rendered directly; <code>object</code> is an ordinary assignment name with no special behavior.</p>
+<pre><code>let size = 50
+let center = [0, 0, mul(size, 0.5)]
+let base = box(center, size)
+let cut = cylinder([15, 15, 25], 8, 70)
+subtract(base, cut)</code></pre>
+            <p>The z axis is vertical, and the build plane is <code>z = 0</code>. Material below the build plane or outside the configured volume size is removed. Comments start with <code>#</code> or <code>//</code>. Number, list, and shape assignments are compile-time constants and must use <code>let name = expression</code>. A 3D vector is a list with exactly 3 numeric items used where a primitive or operator expects a vector. List, function argument, and macro parameter lists can include one optional trailing comma before the closing <code>]</code> or <code>)</code>.</p>
+        </section>
+        <section>
+            <h3>Macros And Blocks</h3>
+            <p>Macros are compile-time substitutions. Declare them with <code>let</code>, parameters, <code>=</code>, and either a single expression or a scoped block.</p>
+<pre><code>let pair(a, b) = union(a, b)
+let cut_with(base, cutter) = {
+let moved = move(cutter, [0, 0, 2])
+subtract(base, moved)
+}
+
+pair(box([0, 0, 10], 20), cut_with(box([0, 0, 10], 20), sphere([0, 0, 12], 4)))</code></pre>
+            <p>Macro names cannot replace built-in names. Macro parameters shadow outer names inside the macro body, while passed arguments resolve where the macro is called. Recursive macros are rejected. Blocks end with a direct result expression.</p>
+        </section>
+        <section>
+            <h3>Lists And Loops</h3>
+            <p>Lists are compile-time values. Use <code>[a, b, c]</code> to create a list and <code>...</code> inside function calls to pass list items as separate arguments.</p>
+<pre><code>let min_val = min(...[1, 2, 3, 4])
+let spheres = for i = 0 to 10 step 2 sphere([mul(i, 5), 0, 20], 2)
+let moved = for item in spheres move(item, [0, 10, 0])
+smooth_union(...moved, 4)</code></pre>
+            <p>Range loops are inclusive. Inline loop bodies use the next expression directly. Braced bodies are scoped blocks and return their final expression.</p>
+        </section>
+        <section>
+            <h3>Primitives</h3>
+            <ul>
+                <li><code>sphere(center, radius)</code></li>
+                <li><code>box(center, size)</code>. <code>size</code> can be a number or vector.</li>
+                <li><code>rounded_box(center, size, edge_radius)</code> keeps the box dimensions and rounds each edge inward.</li>
+                <li><code>box_frame(center, size, thickness)</code> creates an open rectangular frame following the twelve box edges. <code>size</code> can be a number or vector.</li>
+                <li><code>chamfer_box(center, size, chamfer_size)</code> keeps the box dimensions and clips each edge inward with flat chamfers.</li>
+                <li><code>cylinder(center, radius, height)</code>, centered on the z axis.</li>
+                <li><code>rounded_cylinder(center, radius, height, edge_radius)</code> keeps the cylinder radius and height and rounds the cap edges inward.</li>
+                <li><code>chamfer_cylinder(center, radius, height, chamfer_size)</code> keeps the cylinder radius and height and clips the cap edges inward with flat chamfers.</li>
+                <li><code>tri_prism(center, radius, height)</code>, <code>hex_prism(center, radius, height)</code>, and <code>octagon_prism(center, radius, height)</code> create centered z-axis prisms with regular polygon cross sections.</li>
+                <li><code>cone(base_center, height, base_radius, top_radius)</code></li>
+                <li><code>rounded_cone(base_center, height, base_radius, top_radius, edge_radius)</code> keeps the cone side profile and rounds the base and top edges inward.</li>
+                <li><code>chamfer_cone(base_center, height, base_radius, top_radius, chamfer_size)</code> keeps the cone side profile and clips the base and top edges inward with flat chamfers.</li>
+                <li><code>pyramid(base_center, height, base_size)</code> creates a square pyramid with its base centered at <code>base_center</code> and apex at <code>base_center + [0, 0, height]</code>.</li>
+                <li><code>octahedron(center, size)</code> creates a centered regular octahedron.</li>
+                <li><code>torus(center, major_radius, minor_radius)</code>, centered around the z axis.</li>
+                <li><code>capped_torus(center, major_radius, minor_radius, start_degrees, sweep_degrees)</code> creates a rounded tube along a partial torus arc in the xy plane. Positive sweep is counter-clockwise when viewed from +z.</li>
+                <li><code>capped_cylinder(start, end, radius)</code> or <code>capped_line(start, end, radius)</code> creates a rounded tube between two 3D points.</li>
+                <li><code>capped_cone(start, end, start_radius, end_radius)</code> creates a flat-capped tapered cone between two 3D points.</li>
+            </ul>
+        </section>
+        <section>
+            <h3>Operators</h3>
+            <ul>
+                <li><code>union(a, b, ...)</code> combines volumes. <code>intersect(a, b, ...)</code> keeps the overlap.</li>
+                <li><code>subtract(a, b, ...)</code> removes all following volumes from the first volume.</li>
+                <li><code>smooth_union(a, b, ..., radius)</code>, <code>smooth_intersect(a, b, ..., radius)</code>, and <code>smooth_subtract(a, b, ..., radius)</code> blend operations with a mandatory final smooth radius.</li>
+                <li><code>chamfer_union(a, b, ..., radius)</code>, <code>chamfer_intersect(a, b, ..., radius)</code>, and <code>chamfer_subtract(a, b, ..., radius)</code> create flat 45-degree chamfers with a mandatory final chamfer size.</li>
+                <li><code>color(a, [r, g, b])</code> assigns a linear RGB color from <code>0</code> to <code>1</code> for the Solid and Solid photo previews.</li>
+                <li><code>min(a, b, ...)</code>, <code>max(a, b, ...)</code>, <code>add(a, b, ...)</code>, and <code>mul(a, b, ...)</code> combine two or more values. For colored shapes, <code>min</code> keeps colors like <code>union</code> and <code>max</code> keeps colors like <code>intersect</code>.</li>
+                <li><code>abs(a)</code>, <code>div(a, b)</code>, <code>mod(a, b)</code>, and <code>pow(a, b)</code> provide primitive value operations.</li>
+                <li><code>move(a, offset)</code> moves a shape by a vector.</li>
+                <li><code>scale(a, factor)</code> and <code>scale(a, scale_vector)</code> scale a shape around the origin.</li>
+                <li><code>rotate(a, axis, angle_degrees)</code> rotates a shape around an axis vector through the origin. Facing in the axis direction, positive angles rotate clockwise.</li>
+                <li><code>round(a, radius)</code> rounds a surface outward.</li>
+                <li><code>shell(a, thickness)</code> creates a shell around a surface.</li>
+            </ul>
+        </section>
+        <section>
+            <h3>Triangulators</h3>
+            <ul>
+                <li><strong>Voxel</strong>: classifies full grid cells by sampled occupancy, keeps sharp cube faces, and adds 10 percent bridge geometry only where edge-touching or corner-touching cells are not already face-connected through neighboring voxels.</li>
+                <li><strong>Voxel blend</strong>: assembles half-shifted junction tiles from the eight neighboring voxel states. Exterior and interior voxel transitions are blended with sloped facets, so exposed 90 degree and recessed 270 degree voxel junctions are replaced. Diagonal point contacts are left as separate chamfered corners instead of being bridged.</li>
+                <li><strong>Marching tetrahedra</strong>: splits every grid cell into five tetrahedra with alternating 3D chessboard orientation and connects shared grid-edge crossings directly. Edge vertices are clamped away from tetrahedron corners using a reducer-derived weld threshold, which avoids closure triangles smaller than the reducer can keep distinct.</li>
+                <li><strong>Contour fit</strong>: samples the SDF on a grid. When the surface crosses a grid cell, it uses the edge crossings and surface normals to fit one representative vertex inside that cell, then connects neighboring fitted cell vertices across crossing grid edges. This preserves sharp edges and corners better than using the edge crossings directly.</li>
+            </ul>
+        </section>
+        <section>
+            <h3>Page Controls</h3>
+            <ul>
+                <li><strong>Editor</strong>: update the script to recompile the preview after a short pause. Solid and Solid photo shaders compile lazily when their view is needed, and the previous selected shader stays active until its replacement is ready.</li>
+                <li><strong>Triangulate</strong>: create a mesh from the current SDF script, then run the selected reducer in background workers.</li>
+                <li><strong>Preview</strong>: switch between Solid, Solid photo with heavier ray-marched lighting, Shaded mesh with AO, Triangle mesh with false coloring and AO, and Wireframe mesh. Mesh AO fades outside the central volume area to avoid distant ground and horizon darkening. If no mesh exists, mesh previews show a grayscale Solid preview and start triangulation when clicked.</li>
+                <li><strong>Export txt STL</strong>: download the current triangulation as an ASCII STL file.</li>
+                <li><strong>Export bin STL</strong>: download the current triangulation as a compact binary STL file.</li>
+                <li><strong>Triangulator</strong>: choose Voxel, Voxel blend, Marching tetrahedra, or Contour fit before triangulating.</li>
+                <li><strong>Reducer</strong>: choose None to keep the raw triangulation, Edge collapse to collapse geometry-preserving edges from shortest to longest, or Strong edge collapse to allow up to 3 degrees of local plane deviation while keeping the same topology guards.</li>
+                <li><strong>Cell size</strong>: set triangulation cell size in millimeters. Default is 1 mm, and the minimum is 0.1 mm.</li>
+                <li><strong>Subdivisions</strong>: for Contour fit, set the minimum feature size to cell size divided by subdivisions. For Voxel and Voxel blend, sample this many subcells on each axis to measure cell occupancy. Marching tetrahedra does not use subdivisions, so the input is disabled for that mode. Default is 2, and the maximum is 3.</li>
+                <li><strong>Triangulation progress</strong>: mesh generation and selected reduction run in background workers and report progress in the preview overlay.</li>
+                <li><strong>Volume size</strong>: set the width, depth, and height in millimeters of the visible triangulation volume. Its height starts at the <code>z = 0</code> build plane, and the final object is clipped to this box. The Solid preview draws a faint volume wireframe, and Solid plus mesh previews subtly darken the volume footprint on the ground. Triangulation adds at least 1 mm of hidden padding on all sides before sampling, then expands the sampling grid to whole cells aligned on the origin.</li>
+                <li><strong>Preview drag</strong>: rotate the camera around the object.</li>
+                <li><strong>Mouse wheel</strong>: zoom the preview camera.</li>
+                <li><strong>Animate</strong>: slowly orbit the camera around the object.</li>
+                <li><strong>Grid</strong>: the preview grid is the <code>z = 0</code> build plane with 10 mm cells.</li>
+                <li><strong>Dark mode</strong>: switch the page theme between light and dark mode.</li>
+            </ul>
+        </section>
+    </div>
+    <form class="help-dialog-actions" method="dialog">
+        <button type="submit">Close</button>
+    </form>
+</dialog>
+<script type="module" src="main.js"></script>
+</body>
+</html>
