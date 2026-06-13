@@ -28,28 +28,6 @@ http://127.0.0.1:8000/
 
 No build step or external JavaScript library is required.
 
-## Test
-
-Run the local parser, compiler, meshing, and STL smoke tests:
-
-```sh
-node tests/parser-exporter.test.js
-```
-
-Run the slower mesh regression repros or the whole suite explicitly:
-
-```sh
-node tests/parser-exporter.test.js --slow
-node tests/parser-exporter.test.js --all
-```
-
-Useful test runner options:
-
-```sh
-node tests/parser-exporter.test.js --list
-node tests/parser-exporter.test.js --filter contour --profile
-```
-
 ## Project Layout
 
 - `index.html` contains the app shell.
@@ -58,6 +36,3 @@ node tests/parser-exporter.test.js --filter contour --profile
 - `main.js` is the browser entry module.
 - `js/` contains flat ES modules for parsing, compiling, meshing, and STL export.
 - `glsl/` contains WebGL2 shader sources loaded at page start.
-- `tests/` contains dependency-free tests.
-- `images/` is reserved for documentation images.
-- `assets/` is reserved for static data.
